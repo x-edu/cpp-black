@@ -476,16 +476,19 @@ RequestHolder Request::Create(Request::Type type) {
   switch (type) {
     case Request::Type::COMPUTE_INCOME: {
       ComputeIncomeRequest r;
-      return make_unique<ComputeIncomeRequest>();
+      return RequestHolder(&r);
     }
     case Request::Type::EARN: {
-      return make_unique<AddMoneyRequest<+1>>();
+      AddMoneyRequest<+1> r;
+      return RequestHolder(&r);
     }
     case Request::Type::SPEND: {
-      return make_unique<AddMoneyRequest<-1>>();
+      AddMoneyRequest<-1> r;
+      return RequestHolder(&r);
     }
     case Request::Type::PAY_TAX: {
-      return make_unique<PayTaxRequest>();
+      PayTaxRequest r;
+      return RequestHolder(&r);
     }
     default:
       return nullptr;
