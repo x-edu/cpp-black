@@ -475,20 +475,16 @@ struct PayTaxRequest : ModifyRequest {
 RequestHolder Request::Create(Request::Type type) {
   switch (type) {
     case Request::Type::COMPUTE_INCOME: {
-      ComputeIncomeRequest r;
-      return RequestHolder(&r);
+      return make_unique<ComputeIncomeRequest>();
     }
     case Request::Type::EARN: {
-      AddMoneyRequest<+1> r;
-      return RequestHolder(&r);
+      return make_unique<AddMoneyRequest<+1>>();
     }
     case Request::Type::SPEND: {
-      AddMoneyRequest<-1> r;
-      return RequestHolder(&r);
+      return make_unique<AddMoneyRequest<-1>>();
     }
     case Request::Type::PAY_TAX: {
-      PayTaxRequest r;
-      return RequestHolder(&r);
+      return make_unique<PayTaxRequest>();
     }
     default:
       return nullptr;
