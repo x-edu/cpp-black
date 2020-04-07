@@ -192,47 +192,48 @@ public:
   SummingSegmentTree(size_t size) : root_(Build({0, size})) {}
 
   Data ComputeSum(IndexSegment segment) const {
-    return this->TraverseWithQuery(root_.get(), segment, ComputeSumVisitor{});
+    return this->TraverseWithQuery(root_, segment, ComputeSumVisitor{});
   }
 
   void AddBulkOperation(IndexSegment segment, const BulkOperation& operation) {
-    this->TraverseWithQuery(root_.get(), segment, AddBulkOperationVisitor{operation});
+    this->TraverseWithQuery(root_, segment, AddBulkOperationVisitor{operation});
   }
 
 private:
   struct Node;
+  using NodeHolder = unique_ptr<Node>;
 
   struct Node {
-    Node* left;
-    Node* right;
+    NodeHolder left;
+    NodeHolder right;
     IndexSegment segment;
     Data data;
     BulkOperation postponed_bulk_operation;
   };
 
-  std::unique_ptr<Node> root_;
+  NodeHolder root_;
 
-  static Node* Build(IndexSegment segment) {
+  static NodeHolder Build(IndexSegment segment) {
     if (segment.empty()) {
       return nullptr;
     } else if (segment.length() == 1) {
-      return new Node{
+      return make_unique<Node>(Node{
         .left = nullptr,
         .right = nullptr,
         .segment = segment,
-      };
+      });
     } else {
       const size_t middle = segment.left + segment.length() / 2;
-      return new Node{
+      return make_unique<Node>(Node{
         .left = Build({segment.left, middle}),
         .right = Build({middle, segment.right}),
         .segment = segment,
-      };
+      });
     }
   }
 
   template <typename Visitor>
-  static typename Visitor::ResultType TraverseWithQuery(Node* node, IndexSegment query_segment, Visitor visitor) {
+  static typename Visitor::ResultType TraverseWithQuery(const NodeHolder& node, IndexSegment query_segment, Visitor visitor) {
     if (!node || !AreSegmentsIntersected(node->segment, query_segment)) {
       return visitor.ProcessEmpty(node);
     } else {
@@ -259,15 +260,15 @@ private:
   public:
     using ResultType = Data;
 
-    Data ProcessEmpty(Node*) const {
+    Data ProcessEmpty(const NodeHolder&) const {
       return {};
     }
 
-    Data ProcessFull(Node* node) const {
+    Data ProcessFull(const NodeHolder& node) const {
       return node->data;
     }
 
-    Data ProcessPartial(Node*, IndexSegment, const Data& left_result, const Data& right_result) const {
+    Data ProcessPartial(const NodeHolder&, IndexSegment, const Data& left_result, const Data& right_result) const {
       return left_result + right_result;
     }
   };
@@ -280,14 +281,14 @@ private:
         : operation_(operation)
     {}
 
-    void ProcessEmpty(Node*) const {}
+    void ProcessEmpty(const NodeHolder&) const {}
 
-    void ProcessFull(Node* node) const {
+    void ProcessFull(const NodeHolder& node) const {
       node->postponed_bulk_operation.CombineWith(operation_);
       node->data = operation_.Collapse(node->data, node->segment);
     }
 
-    void ProcessPartial(Node* node, IndexSegment) const {
+    void ProcessPartial(const NodeHolder& node, IndexSegment) const {
       node->data = (node->left ? node->left->data : Data()) + (node->right ? node->right->data : Data());
     }
 
@@ -295,8 +296,8 @@ private:
     const BulkOperation& operation_;
   };
 
-  static void PropagateBulkOperation(Node* node) {
-    for (auto* child_ptr : {node->left, node->right}) {
+  static void PropagateBulkOperation(const NodeHolder& node) {
+    for (auto* child_ptr : {node->left.get(), node->right.get()}) {
       if (child_ptr) {
         child_ptr->postponed_bulk_operation.CombineWith(node->postponed_bulk_operation);
         child_ptr->data = node->postponed_bulk_operation.Collapse(child_ptr->data, child_ptr->segment);
