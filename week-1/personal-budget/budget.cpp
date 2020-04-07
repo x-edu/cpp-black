@@ -148,7 +148,7 @@ template <typename Data, typename BulkOperation>
 class BaseBulkOperation {
 public:
   using TreeHolder = SummingSegmentTreeHolder<Data, BulkOperation>;
-  BaseBulkOperation(const TreeHolder& tree) : tree_(tree.get()) {}
+  BaseBulkOperation(const TreeHolder& tree) : tree_(tree) {}
 private:
   TreeHolder tree_;
 };
