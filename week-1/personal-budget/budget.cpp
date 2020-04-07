@@ -144,31 +144,15 @@ class SummingSegmentTree;
 template <typename Data, typename BulkOperation>
 using SummingSegmentTreeHolder = std::shared_ptr<SummingSegmentTree<Data, BulkOperation>>;
 
-template <typename Data, typename BulkOperation>
-class BaseBulkOperation {
+class BulkLinearUpdater {
 public:
-  using TreeHolder = SummingSegmentTreeHolder<Data, BulkOperation>;
-  BaseBulkOperation(const TreeHolder& tree) : tree_(tree) {}
-private:
-  TreeHolder tree_;
-};
+  BulkLinearUpdater() = default;
 
-class BulkLinearUpdater : BaseBulkOperation<MoneyState, BulkLinearUpdater> {
-public:
-  BulkLinearUpdater(const TreeHolder& tree = nullptr) : BaseBulkOperation(tree) {}
+  BulkLinearUpdater(const BulkMoneyAdder& add): add_(add) {}
 
-  BulkLinearUpdater(const TreeHolder& tree, const BulkMoneyAdder& add)
-      : BaseBulkOperation(tree),
-        add_(add)
-  {}
-
-  BulkLinearUpdater(const TreeHolder& tree, const BulkTaxApplier& tax)
-      : BaseBulkOperation(tree),
-        tax_(tax)
-  {}
+  BulkLinearUpdater(const BulkTaxApplier& tax): tax_(tax) {}
 
   void CombineWith(const BulkLinearUpdater& other) {
-    BaseBulkOperation::operator=(other);
     tax_.factor *= other.tax_.factor;
     add_.delta.spent += other.add_.delta.spent;
     add_.delta.earned = add_.delta.earned * other.tax_.factor + other.add_.delta.earned;
@@ -444,7 +428,7 @@ struct AddMoneyRequest : ModifyRequest {
     const MoneyState daily_change = SIGN == 1 ? MoneyState{.earned = daily_value} : MoneyState{.spent = daily_value};
     manager.GetTree()->AddBulkOperation(
         date_segment,
-        BulkLinearUpdater(manager.GetTree(), BulkMoneyAdder{daily_change})
+        BulkLinearUpdater(BulkMoneyAdder{daily_change})
     );
   }
 
@@ -464,7 +448,7 @@ struct PayTaxRequest : ModifyRequest {
   void Process(BudgetManager& manager) const override {
     manager.GetTree()->AddBulkOperation(
         MakeDateSegment(date_from, date_to),
-        BulkLinearUpdater(manager.GetTree(), BulkTaxApplier::FromPercentage(percentage))
+        BulkLinearUpdater(BulkTaxApplier::FromPercentage(percentage))
     );
   }
 
