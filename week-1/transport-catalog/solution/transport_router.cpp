@@ -9,7 +9,7 @@ TransportRouter::TransportRouter(const Descriptions::StopsDict& stops_dict,
     : routing_settings_(MakeRoutingSettings(routing_settings_json))
 {
   const size_t vertex_count = stops_dict.size() * 2;
-  vertices_info_.reserve(vertex_count);
+  vertices_info_.resize(vertex_count);
   graph_ = BusGraph(vertex_count);
 
   FillGraphWithStops(stops_dict);
