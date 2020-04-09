@@ -36,11 +36,12 @@ void TransportRouter::FillGraphWithStops(const Descriptions::StopsDict& stops_di
     vertices_info_[vertex_ids.out] = {stop_name};
 
     edges_info_.push_back(WaitEdgeInfo{});
-    graph_.AddEdge({
+    const Graph::EdgeId edge_id = graph_.AddEdge({
         vertex_ids.out,
         vertex_ids.in,
         static_cast<double>(routing_settings_.bus_wait_time)
     });
+    assert(edge_id == edges_info_.size() - 1);
   }
 
   assert(vertex_id == graph_.GetVertexCount());
@@ -66,11 +67,12 @@ void TransportRouter::FillGraphWithBuses(const Descriptions::StopsDict& stops_di
             .bus_name = bus.name,
             .span_count = finish_stop_idx - start_stop_idx,
         });
-        graph_.AddEdge({
+        const Graph::EdgeId edge_id = graph_.AddEdge({
             start_vertex,
             stops_vertex_ids_[bus.stops[finish_stop_idx]].out,
             total_distance * 1.0 / (routing_settings_.bus_velocity * 1000.0 / 60)  // m / (km/h * 1000 / 60) = min
         });
+        assert(edge_id == edges_info_.size() - 1);
       }
     }
   }
