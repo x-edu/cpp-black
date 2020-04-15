@@ -38,6 +38,20 @@ class PropertiesBuilder {
   std::ostream& ostream_;
 };
 
+template <typename T>
+class ContentBuilder {
+ public:
+  explicit ContentBuilder(std::ostream& ostream) : ostream_(ostream) {}
+
+  ContentBuilder& Add(const T& value) {
+    ostream_ << value;
+    return *this;
+  }
+
+ private:
+  std::ostream& ostream_;
+};
+
 }  // namespace
 
 /*
@@ -109,36 +123,66 @@ const Color NoneColor;
 
 class Tag {
  public:
-  template <typename T>
-  Tag(T&& tag, bool has_content)
-      : tag_(std::forward<T>(tag)), has_content_(has_content) {}
+  explicit Tag(std::string tag) : tag_(std::move(tag)) {}
+  virtual ~Tag() = default;
 
-  void Render(std::ostream& ostream) const {
-    ostream << '<' << tag_ << ' ';
-    PropertiesBuilder properties{ostream};
-    AddProperties(properties);
-    if (has_content_) {
-      ostream << '>';
-      AddContent(ostream);
-      ostream << "</" << tag_ << ">";
-    } else {
-      ostream << "/>";
-    }
+  [[nodiscard]] const std::string& GetTag() const { return tag_; }
+
+  virtual void Render(std::ostream& ostream) const {
+    RenderOpenTag(ostream);
+    RenderProperties(ostream);
+    RenderCloseTag(ostream);
   }
 
  protected:
+  virtual void RenderOpenTag(std::ostream& ostream) const {
+    ostream << '<' << tag_ << ' ';
+  }
+
+  virtual void RenderProperties(std::ostream& ostream) const {
+    PropertiesBuilder properties{ostream};
+    AddProperties(properties);
+  }
+
+  virtual void RenderCloseTag(std::ostream& ostream) const { ostream << "/>"; }
+
   virtual void AddProperties(PropertiesBuilder& /*properties*/) const {}
-  virtual void AddContent(std::ostream& /*ostream*/) const {}
 
  private:
   std::string tag_;
-  bool has_content_;
+};
+
+template <typename T>
+class TagWithContent : public Tag {
+ public:
+  explicit TagWithContent(const std::string& tag) : Tag(tag) {}
+  explicit TagWithContent(std::string&& tag) : Tag(tag) {}
+
+  void Render(std::ostream& ostream) const override {
+    RenderOpenTag(ostream);
+    RenderProperties(ostream);
+    RenderContent(ostream);
+    RenderCloseTag(ostream);
+  }
+
+ protected:
+  virtual void RenderContent(std::ostream& ostream) const {
+    ostream << '>';
+    ContentBuilder<T> builder{ostream};
+    AddContent(builder);
+  }
+
+  void RenderCloseTag(std::ostream& ostream) const override {
+    ostream << "</" << GetTag() << '>';
+  }
+
+  virtual void AddContent(ContentBuilder<T>& builder) const = 0;
 };
 
 namespace {
 
 template <typename T>
-class SimpleObject {
+class BaseProperties {
  public:
   // Задаёт значение свойства fill — цвет заливки. Значение по умолчанию —
   // NoneColor.
@@ -198,9 +242,9 @@ class SimpleObject {
  * Значения по умолчанию — 0.0. SetRadius(double): задаёт значение свойства r —
  * радиус круга. Значение по умолчанию — 1.0.
  */
-class Circle : public Tag, public SimpleObject<Circle> {
+class Circle : public Tag, public BaseProperties<Circle> {
  public:
-  Circle() : Tag("circle", /* has_content= */ false) {}
+  Circle() : Tag("circle") {}
 
   Circle& SetCenter(Point point) {
     center_ = point;
@@ -214,7 +258,7 @@ class Circle : public Tag, public SimpleObject<Circle> {
 
  protected:
   void AddProperties(PropertiesBuilder& builder) const override {
-    SimpleObject::AddProperties(builder);
+    BaseProperties::AddProperties(builder);
     builder.Add("cx", center_.x).Add("cy", center_.y).Add("r", radius_);
   }
 
@@ -229,9 +273,9 @@ class Circle : public Tag, public SimpleObject<Circle> {
  * записываемый в виде x,y и отделяемый пробелами от соседних элементов (см.
  * примеры). Значение свойства по умолчанию — пустая строка.
  */
-class Polyline : public Tag, public SimpleObject<Polyline> {
+class Polyline : public Tag, public BaseProperties<Polyline> {
  public:
-  Polyline() : Tag("polyline", /* has_content= */ false) {}
+  Polyline() : Tag("polyline") {}
 
   Polyline& AddPoint(const Point& point) {
     if (!points_.empty()) {
@@ -245,7 +289,7 @@ class Polyline : public Tag, public SimpleObject<Polyline> {
 
  protected:
   void AddProperties(PropertiesBuilder& builder) const override {
-    SimpleObject::AddProperties(builder);
+    BaseProperties::AddProperties(builder);
     builder.Add("points", points_);
   }
 
@@ -253,9 +297,9 @@ class Polyline : public Tag, public SimpleObject<Polyline> {
   std::string points_{};
 };
 
-class Text : public Tag, public SimpleObject<Text> {
+class Text : public TagWithContent<std::string>, public BaseProperties<Text> {
  public:
-  Text() : Tag("text", /* has_content= */ true) {}
+  Text() : TagWithContent("text") {}
 
   // задаёт значения свойств x и y — координаты текста. Значения по умолчанию —
   // 0.0.
@@ -294,7 +338,7 @@ class Text : public Tag, public SimpleObject<Text> {
 
  protected:
   void AddProperties(PropertiesBuilder& builder) const override {
-    SimpleObject::AddProperties(builder);
+    BaseProperties::AddProperties(builder);
     builder.Add("x", point_.x)
         .Add("y", point_.y)
         .Add("dx", offset_.x)
@@ -303,7 +347,9 @@ class Text : public Tag, public SimpleObject<Text> {
         .AddOptional("font-family", font_family_);
   }
 
-  void AddContent(std::ostream& ostream) const override { ostream << data_; }
+  void AddContent(ContentBuilder<std::string>& builder) const override {
+    builder.Add(data_);
+  }
 
  private:
   Point point_ = {.x = 0, .y = 0};
