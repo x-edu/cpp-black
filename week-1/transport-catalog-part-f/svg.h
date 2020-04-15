@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <ostream>
 #include <optional>
+#include <ostream>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -12,14 +12,16 @@ namespace Svg {
 
 namespace {
 
-constexpr auto kSvgHeader = std::string_view(R"(<?xml version="1.0" encoding="UTF-8" ?>)");
+constexpr auto kSvgHeader =
+    std::string_view(R"(<?xml version="1.0" encoding="UTF-8" ?>)");
 
-} // namespace
+}  // namespace
 
 /*
  * Point — структура из двух полей x и y типа double.
- * Необходимо иметь возможность создать точку с помощью выражения Point{x, y}, а также создать с помощью
- * конструктора по умолчанию и затем заполнить поля x и y прямым обращением к ним.
+ * Необходимо иметь возможность создать точку с помощью выражения Point{x, y}, а
+ * также создать с помощью конструктора по умолчанию и затем заполнить поля x и
+ * y прямым обращением к ним.
  */
 struct Point {
   double x, y;
@@ -27,10 +29,11 @@ struct Point {
 
 /*
  * Rgb — структура из целочисленных полей red, green, blue.
- * Необходимо иметь возможность создать объект с помощью выражения Rgb{red, green, blue}, а также создать с помощью
- * конструктора по умолчанию и затем заполнить поля red, green и blue прямым обращением к ним.
- * Поля будут заполняться значениями от 0 до 255.
- * Валидация их инициализированности и попадания значений в диапазон [0, 255] не требуется: в случае нарушения этих
+ * Необходимо иметь возможность создать объект с помощью выражения Rgb{red,
+ * green, blue}, а также создать с помощью конструктора по умолчанию и затем
+ * заполнить поля red, green и blue прямым обращением к ним. Поля будут
+ * заполняться значениями от 0 до 255. Валидация их инициализированности и
+ * попадания значений в диапазон [0, 255] не требуется: в случае нарушения этих
  * требований допускается undefined behaviour.
  */
 struct Rgb {
@@ -40,13 +43,16 @@ struct Rgb {
 /*
  * Color — тип, который можно проинициализировать одним из трёх способов:
  * - Конструктором по умолчанию. Такой цвет выводится как none.
- * - Строкой (std::string). Такой цвет выводится непосредственно как содержимое строки.
- * - Структурой Rgb. Такой цвет выводится в виде rgb(red,green,blue) (см. примеры).
+ * - Строкой (std::string). Такой цвет выводится непосредственно как содержимое
+ * строки.
+ * - Структурой Rgb. Такой цвет выводится в виде rgb(red,green,blue) (см.
+ * примеры).
  *
  * Тип должен допускать неявную инициализацию строкой или Rgb.
  *
- * Кроме того, для удобства и улучшения читаемости должна существовать глобальная константа Svg::NoneColor,
- * представляющая собой объект класса Color, созданный с помощью конструктора по умолчанию.
+ * Кроме того, для удобства и улучшения читаемости должна существовать
+ * глобальная константа Svg::NoneColor, представляющая собой объект класса
+ * Color, созданный с помощью конструктора по умолчанию.
  */
 class Color {
  public:
@@ -54,7 +60,7 @@ class Color {
   Color(std::string&& color) : color_(std::move(color)) {}
   Color() : color_("none") {}
 
-  template<typename TRgb>
+  template <typename TRgb>
   Color(TRgb&& color) : color_(std::forward<TRgb>(color)) {}
 
   [[nodiscard]] std::string ToString() const {
@@ -64,9 +70,7 @@ class Color {
  private:
   class ToStringVisitor {
    public:
-    std::string operator()(const std::string& color) {
-      return color;
-    }
+    std::string operator()(const std::string& color) { return color; }
     std::string operator()(const Rgb& rgb) {
       std::stringstream s{};
       s << "rgb(" << rgb.red << "," << rgb.green << "," << rgb.blue << ")";
@@ -82,8 +86,9 @@ const Color NoneColor;
 
 class Tag {
  public:
-  template<typename T>
-  Tag(T&& tag, bool has_content): tag_(std::forward<T>(tag)), has_content_(has_content) {}
+  template <typename T>
+  Tag(T&& tag, bool has_content)
+      : tag_(std::forward<T>(tag)), has_content_(has_content) {}
 
   void Render(std::ostream& ostream) const {
     ostream << '<' << tag_ << ' ';
@@ -103,14 +108,15 @@ class Tag {
    public:
     explicit PropertiesBuilder(std::ostream& ostream) : ostream_(ostream) {}
 
-    template<typename T>
+    template <typename T>
     PropertiesBuilder& Add(const std::string& name, const T& value) {
       ostream_ << name << R"(=")" << value << R"(" )";
       return *this;
     }
 
-    template<typename T>
-    PropertiesBuilder& AddOptional(const std::string& name, const std::optional<T>& value) {
+    template <typename T>
+    PropertiesBuilder& AddOptional(const std::string& name,
+                                   const std::optional<T>& value) {
       if (value.has_value()) {
         return Add(name, value.value());
       }
@@ -132,33 +138,39 @@ class Tag {
 
 namespace {
 
-template<typename T>
+template <typename T>
 class SimpleObject : public Tag {
  public:
-  template<typename TTag>
-  SimpleObject(TTag&& tag, bool has_content): Tag(std::forward<TTag>(tag), has_content) {}
+  template <typename TTag>
+  SimpleObject(TTag&& tag, bool has_content)
+      : Tag(std::forward<TTag>(tag), has_content) {}
 
-  // Задаёт значение свойства fill — цвет заливки. Значение по умолчанию — NoneColor.
+  // Задаёт значение свойства fill — цвет заливки. Значение по умолчанию —
+  // NoneColor.
   T& SetFillColor(const Color& fill_color) {
     fill_color_ = fill_color;
     return ThisRef();
   }
-  // задаёт значение свойства stroke — цвет линии. Значение по умолчанию — NoneColor.
+  // задаёт значение свойства stroke — цвет линии. Значение по умолчанию —
+  // NoneColor.
   T& SetStrokeColor(const Color& stroke_color) {
     stroke_color_ = stroke_color;
     return ThisRef();
   }
-  // задаёт значение свойства stroke-width — толщину линии. Значение по умолчанию — 1.0.
+  // задаёт значение свойства stroke-width — толщину линии. Значение по
+  // умолчанию — 1.0.
   T& SetStrokeWidth(double stroke_width) {
     stroke_width_ = stroke_width;
     return ThisRef();
   }
-  // задаёт значение свойства stroke-linecap — тип формы конца линии. По умолчанию свойство не выводится.
+  // задаёт значение свойства stroke-linecap — тип формы конца линии. По
+  // умолчанию свойство не выводится.
   T& SetStrokeLineCap(const std::string& stroke_line_cap) {
     stroke_line_cap_ = stroke_line_cap;
     return ThisRef();
   }
-  // задаёт значение свойства stroke-linejoin — тип формы соединения линий. По умолчанию свойство не выводится.
+  // задаёт значение свойства stroke-linejoin — тип формы соединения линий. По
+  // умолчанию свойство не выводится.
   T& SetStrokeLineJoin(const std::string& stroke_line_join) {
     stroke_line_join_ = stroke_line_join;
     return ThisRef();
@@ -174,9 +186,7 @@ class SimpleObject : public Tag {
   }
 
  private:
-  T& ThisRef() {
-    return dynamic_cast<T&>(*this);
-  }
+  T& ThisRef() { return dynamic_cast<T&>(*this); }
 
  private:
   Color fill_color_ = NoneColor;
@@ -186,11 +196,12 @@ class SimpleObject : public Tag {
   std::optional<std::string> stroke_line_join_ = std::nullopt;
 };
 
-} // namespace
+}  // namespace
 
 /*
- * SetCenter(Point): задаёт значения свойств cx и cy — координаты центра круга. Значения по умолчанию — 0.0.
- * SetRadius(double): задаёт значение свойства r — радиус круга. Значение по умолчанию — 1.0.
+ * SetCenter(Point): задаёт значения свойств cx и cy — координаты центра круга.
+ * Значения по умолчанию — 0.0. SetRadius(double): задаёт значение свойства r —
+ * радиус круга. Значение по умолчанию — 1.0.
  */
 class Circle : public SimpleObject<Circle> {
  public:
@@ -209,21 +220,19 @@ class Circle : public SimpleObject<Circle> {
  protected:
   void RenderProperties(PropertiesBuilder& builder) const override {
     SimpleObject::RenderProperties(builder);
-    builder.Add("cx", center_.x)
-        .Add("cy", center_.y)
-        .Add("r", radius_);
+    builder.Add("cx", center_.x).Add("cy", center_.y).Add("r", radius_);
   }
 
  private:
-  Point center_ = {.x=0, .y=0};
+  Point center_ = {.x = 0, .y = 0};
   double radius_ = 1.0;
 };
 
 /*
  * Polyline
  * AddPoint(Point): добавляет вершину ломаной — элемент свойства points,
- * записываемый в виде x,y и отделяемый пробелами от соседних элементов (см. примеры).
- * Значение свойства по умолчанию — пустая строка.
+ * записываемый в виде x,y и отделяемый пробелами от соседних элементов (см.
+ * примеры). Значение свойства по умолчанию — пустая строка.
  */
 class Polyline : public SimpleObject<Polyline> {
  public:
@@ -253,31 +262,36 @@ class Text : public SimpleObject<Text> {
  public:
   Text() : SimpleObject("text", /* has_content= */ true) {}
 
-  // задаёт значения свойств x и y — координаты текста. Значения по умолчанию — 0.0.
+  // задаёт значения свойств x и y — координаты текста. Значения по умолчанию —
+  // 0.0.
   Text& SetPoint(Point point) {
     point_ = point;
     return *this;
   }
 
-  // задаёт значения свойств dx и dy — величины отступа текста от координаты. Значения по умолчанию — 0.0.
+  // задаёт значения свойств dx и dy — величины отступа текста от координаты.
+  // Значения по умолчанию — 0.0.
   Text& SetOffset(Point offset) {
     offset_ = offset;
     return *this;
   }
 
-  // задаёт значение свойства font-size — размер шрифта. Значение по умолчанию — 1.
+  // задаёт значение свойства font-size — размер шрифта. Значение по умолчанию
+  // — 1.
   Text& SetFontSize(uint32_t font_size) {
     font_size_ = font_size;
     return *this;
   }
 
-  // задаёт значение свойства font-family — название шрифта. По умолчанию свойство не выводится.
+  // задаёт значение свойства font-family — название шрифта. По умолчанию
+  // свойство не выводится.
   Text& SetFontFamily(const std::string& font_family) {
     font_family_ = font_family;
     return *this;
   }
 
-  // задаёт содержимое тега <text> — непосредственно выводимый текст. По умолчанию текст пуст.
+  // задаёт содержимое тега <text> — непосредственно выводимый текст. По
+  // умолчанию текст пуст.
   Text& SetData(const std::string& data) {
     data_ = data;
     return *this;
@@ -294,35 +308,32 @@ class Text : public SimpleObject<Text> {
         .AddOptional("font-family", font_family_);
   }
 
-  void RenderContent(std::ostream& ostream) const override {
-    ostream << data_;
-  }
+  void RenderContent(std::ostream& ostream) const override { ostream << data_; }
 
  private:
-  Point point_ = {.x=0, .y=0};
-  Point offset_ = {.x=0, .y=0};
+  Point point_ = {.x = 0, .y = 0};
+  Point offset_ = {.x = 0, .y = 0};
   uint32_t font_size_ = 1;
   std::optional<std::string> font_family_ = std::nullopt;
   std::string data_ = "";
 };
 
 /*
- * Document — класс, с помощью которого производится компоновка и отрисовка SVG-документа.
- * Класс должен поддерживать следующие операции:
+ * Document — класс, с помощью которого производится компоновка и отрисовка
+ * SVG-документа. Класс должен поддерживать следующие операции:
  *
  * Создание с помощью конструктора по умолчанию: Svg::Document svg;
- * Добавление объекта: svg.Add(object), где object имеет тип Circle, Polyline или Text.
- * Обратите внимание, что таким образом поддерживается лишь линейная структура документа:
- * составляющие его объекты по сути образуют массив.
- * Отрисовка (формирование результирующей строки): svg.Render(out), где out — наследник std::ostream.
+ * Добавление объекта: svg.Add(object), где object имеет тип Circle, Polyline
+ * или Text. Обратите внимание, что таким образом поддерживается лишь линейная
+ * структура документа: составляющие его объекты по сути образуют массив.
+ * Отрисовка (формирование результирующей строки): svg.Render(out), где out —
+ * наследник std::ostream.
  */
 class Document {
  public:
   Document() : stream_() {}
 
-  void Add(const Tag& tag) {
-    tag.Render(stream_);
-  }
+  void Add(const Tag& tag) { tag.Render(stream_); }
 
   void Render(std::ostream& ostream) const {
     ostream << kSvgHeader;
@@ -335,4 +346,4 @@ class Document {
   std::stringstream stream_;
 };
 
-} // namespace Svg
+}  // namespace Svg

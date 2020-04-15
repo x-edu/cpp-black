@@ -16,7 +16,7 @@ void SimpleTest() {
       stream.str());
 }
 
-} // namespace
+}  // namespace
 
 void RunTests() {
   TestRunner tr;
