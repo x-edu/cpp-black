@@ -93,12 +93,9 @@ struct Rgb {
  */
 class Color {
  public:
-  Color(const std::string& color) : color_(color) {}
-  Color(std::string&& color) : color_(std::move(color)) {}
-  Color() : color_("none") {}
-
   template <typename TRgb>
   Color(TRgb&& color) : color_(std::forward<TRgb>(color)) {}
+  Color() : color_("none") {}
 
   [[nodiscard]] std::string ToString() const {
     return std::visit(ToStringVisitor{}, color_);
