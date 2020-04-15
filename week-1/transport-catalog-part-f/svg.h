@@ -54,43 +54,14 @@ class ContentBuilder {
 
 }  // namespace
 
-/*
- * Point — структура из двух полей x и y типа double.
- * Необходимо иметь возможность создать точку с помощью выражения Point{x, y}, а
- * также создать с помощью конструктора по умолчанию и затем заполнить поля x и
- * y прямым обращением к ним.
- */
 struct Point {
   double x, y;
 };
 
-/*
- * Rgb — структура из целочисленных полей red, green, blue.
- * Необходимо иметь возможность создать объект с помощью выражения Rgb{red,
- * green, blue}, а также создать с помощью конструктора по умолчанию и затем
- * заполнить поля red, green и blue прямым обращением к ним. Поля будут
- * заполняться значениями от 0 до 255. Валидация их инициализированности и
- * попадания значений в диапазон [0, 255] не требуется: в случае нарушения этих
- * требований допускается undefined behaviour.
- */
 struct Rgb {
   int red, green, blue;
 };
 
-/*
- * Color — тип, который можно проинициализировать одним из трёх способов:
- * - Конструктором по умолчанию. Такой цвет выводится как none.
- * - Строкой (std::string). Такой цвет выводится непосредственно как содержимое
- * строки.
- * - Структурой Rgb. Такой цвет выводится в виде rgb(red,green,blue) (см.
- * примеры).
- *
- * Тип должен допускать неявную инициализацию строкой или Rgb.
- *
- * Кроме того, для удобства и улучшения читаемости должна существовать
- * глобальная константа Svg::NoneColor, представляющая собой объект класса
- * Color, созданный с помощью конструктора по умолчанию.
- */
 class Color {
  public:
   template <typename TRgb>
@@ -181,32 +152,32 @@ namespace {
 template <typename T>
 class BaseProperties {
  public:
-  // Задаёт значение свойства fill — цвет заливки. Значение по умолчанию —
-  // NoneColor.
+  // Задаёт значение свойства fill — цвет заливки.
+  // Значение свойства по умолчанию: NoneColor.
   T& SetFillColor(const Color& fill_color) {
     fill_color_ = fill_color;
     return ThisRef();
   }
-  // задаёт значение свойства stroke — цвет линии. Значение по умолчанию —
-  // NoneColor.
+  // Задаёт значение свойства stroke — цвет линии.
+  // Значение свойства по умолчанию: NoneColor.
   T& SetStrokeColor(const Color& stroke_color) {
     stroke_color_ = stroke_color;
     return ThisRef();
   }
-  // задаёт значение свойства stroke-width — толщину линии. Значение по
-  // умолчанию — 1.0.
+  // Задаёт значение свойства stroke-width — толщину линии.
+  // Значение свойства по умолчанию: 1.0.
   T& SetStrokeWidth(double stroke_width) {
     stroke_width_ = stroke_width;
     return ThisRef();
   }
-  // задаёт значение свойства stroke-linecap — тип формы конца линии. По
-  // умолчанию свойство не выводится.
+  // Задаёт значение свойства stroke-linecap — тип формы конца линии.
+  // По умолчанию свойство не выводится.
   T& SetStrokeLineCap(const std::string& stroke_line_cap) {
     stroke_line_cap_ = stroke_line_cap;
     return ThisRef();
   }
-  // задаёт значение свойства stroke-linejoin — тип формы соединения линий. По
-  // умолчанию свойство не выводится.
+  // Задаёт значение свойства stroke-linejoin — тип формы соединения линий.
+  // По умолчанию свойство не выводится.
   T& SetStrokeLineJoin(const std::string& stroke_line_join) {
     stroke_line_join_ = stroke_line_join;
     return ThisRef();
@@ -234,20 +205,19 @@ class BaseProperties {
 
 }  // namespace
 
-/*
- * SetCenter(Point): задаёт значения свойств cx и cy — координаты центра круга.
- * Значения по умолчанию — 0.0. SetRadius(double): задаёт значение свойства r —
- * радиус круга. Значение по умолчанию — 1.0.
- */
 class Circle : public Tag, public BaseProperties<Circle> {
  public:
   Circle() : Tag("circle") {}
 
+  // Задаёт значения свойств cx и cy — координаты центра круга.
+  // Значение свойства по умолчанию: {0.0, 0.0}.
   Circle& SetCenter(Point point) {
     center_ = point;
     return *this;
   }
 
+  // Задаёт значение свойства r — радиус круга.
+  // Значение свойства по умолчанию: 1.0.
   Circle& SetRadius(double radius) {
     radius_ = radius;
     return *this;
@@ -264,16 +234,13 @@ class Circle : public Tag, public BaseProperties<Circle> {
   double radius_ = 1.0;
 };
 
-/*
- * Polyline
- * AddPoint(Point): добавляет вершину ломаной — элемент свойства points,
- * записываемый в виде x,y и отделяемый пробелами от соседних элементов (см.
- * примеры). Значение свойства по умолчанию — пустая строка.
- */
 class Polyline : public Tag, public BaseProperties<Polyline> {
  public:
   Polyline() : Tag("polyline") {}
 
+  // AddPoint(Point): добавляет вершину ломаной — элемент свойства points,
+  // записываемый в виде x,y и отделяемый пробелами от соседних элементов.
+  // Значение свойства по умолчанию: пустая строка.
   Polyline& AddPoint(const Point& point) {
     if (!points_.empty()) {
       points_.push_back(' ');
@@ -298,36 +265,36 @@ class Text : public TagWithContent<std::string>, public BaseProperties<Text> {
  public:
   Text() : TagWithContent("text") {}
 
-  // задаёт значения свойств x и y — координаты текста. Значения по умолчанию —
-  // 0.0.
+  // задаёт значения свойств x и y — координаты текста.
+  // Значения свойства по умолчанию: {0.0, 0.0}.
   Text& SetPoint(Point point) {
     point_ = point;
     return *this;
   }
 
   // задаёт значения свойств dx и dy — величины отступа текста от координаты.
-  // Значения по умолчанию — 0.0.
+  // Значения свойства по умолчанию: {0.0, 0.0}.
   Text& SetOffset(Point offset) {
     offset_ = offset;
     return *this;
   }
 
-  // задаёт значение свойства font-size — размер шрифта. Значение по умолчанию
-  // — 1.
+  // задаёт значение свойства font-size — размер шрифта.
+  // Значение свойства по умолчанию: 1.
   Text& SetFontSize(uint32_t font_size) {
     font_size_ = font_size;
     return *this;
   }
 
-  // задаёт значение свойства font-family — название шрифта. По умолчанию
-  // свойство не выводится.
+  // задаёт значение свойства font-family — название шрифта.
+  // По умолчанию свойство не выводится.
   Text& SetFontFamily(const std::string& font_family) {
     font_family_ = font_family;
     return *this;
   }
 
-  // задаёт содержимое тега <text> — непосредственно выводимый текст. По
-  // умолчанию текст пуст.
+  // Задаёт содержимое тега <text> — непосредственно выводимый текст.
+  // По умолчанию текст пуст.
   Text& SetData(const std::string& data) {
     data_ = data;
     return *this;
@@ -356,17 +323,6 @@ class Text : public TagWithContent<std::string>, public BaseProperties<Text> {
   std::string data_ = "";
 };
 
-/*
- * Document — класс, с помощью которого производится компоновка и отрисовка
- * SVG-документа. Класс должен поддерживать следующие операции:
- *
- * Создание с помощью конструктора по умолчанию: Svg::Document svg;
- * Добавление объекта: svg.Add(object), где object имеет тип Circle, Polyline
- * или Text. Обратите внимание, что таким образом поддерживается лишь линейная
- * структура документа: составляющие его объекты по сути образуют массив.
- * Отрисовка (формирование результирующей строки): svg.Render(out), где out —
- * наследник std::ostream.
- */
 class Document {
  public:
   Document() : stream_() {}
