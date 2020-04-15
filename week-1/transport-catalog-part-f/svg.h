@@ -186,7 +186,7 @@ class SimpleObject : public Tag {
   }
 
  private:
-  T& ThisRef() { return dynamic_cast<T&>(*this); }
+  T& ThisRef() { return static_cast<T&>(*this); }
 
  private:
   Color fill_color_ = NoneColor;
