@@ -2,9 +2,9 @@
 
 using namespace std;
 
-TransportRouter::TransportRouter(const Descriptions::StopsDict &stops_dict,
-                                 const Descriptions::BusesDict &buses_dict,
-                                 const Json::Dict &routing_settings_json)
+TransportRouter::TransportRouter(const Descriptions::StopsDict& stops_dict,
+                                 const Descriptions::BusesDict& buses_dict,
+                                 const Json::Dict& routing_settings_json)
     : routing_settings_(MakeRoutingSettings(routing_settings_json)) {
   const size_t vertex_count = stops_dict.size() * 2;
   vertices_info_.resize(vertex_count);
@@ -17,7 +17,7 @@ TransportRouter::TransportRouter(const Descriptions::StopsDict &stops_dict,
 }
 
 TransportRouter::RoutingSettings TransportRouter::MakeRoutingSettings(
-    const Json::Dict &json) {
+    const Json::Dict& json) {
   return {
       json.at("bus_wait_time").AsInt(),
       json.at("bus_velocity").AsDouble(),
@@ -25,11 +25,11 @@ TransportRouter::RoutingSettings TransportRouter::MakeRoutingSettings(
 }
 
 void TransportRouter::FillGraphWithStops(
-    const Descriptions::StopsDict &stops_dict) {
+    const Descriptions::StopsDict& stops_dict) {
   Graph::VertexId vertex_id = 0;
 
-  for (const auto &[stop_name, _] : stops_dict) {
-    auto &vertex_ids = stops_vertex_ids_[stop_name];
+  for (const auto& [stop_name, _] : stops_dict) {
+    auto& vertex_ids = stops_vertex_ids_[stop_name];
     vertex_ids.in = vertex_id++;
     vertex_ids.out = vertex_id++;
     vertices_info_[vertex_ids.in] = {stop_name};
@@ -46,10 +46,10 @@ void TransportRouter::FillGraphWithStops(
 }
 
 void TransportRouter::FillGraphWithBuses(
-    const Descriptions::StopsDict &stops_dict,
-    const Descriptions::BusesDict &buses_dict) {
-  for (const auto &[_, bus_item] : buses_dict) {
-    const auto &bus = *bus_item;
+    const Descriptions::StopsDict& stops_dict,
+    const Descriptions::BusesDict& buses_dict) {
+  for (const auto& [_, bus_item] : buses_dict) {
+    const auto& bus = *bus_item;
     const size_t stop_count = bus.stops.size();
     if (stop_count <= 1) {
       continue;
@@ -84,7 +84,7 @@ void TransportRouter::FillGraphWithBuses(
 }
 
 optional<TransportRouter::RouteInfo> TransportRouter::FindRoute(
-    const string &stop_from, const string &stop_to) const {
+    const string& stop_from, const string& stop_to) const {
   const Graph::VertexId vertex_from = stops_vertex_ids_.at(stop_from).out;
   const Graph::VertexId vertex_to = stops_vertex_ids_.at(stop_to).out;
   const auto route = router_->BuildRoute(vertex_from, vertex_to);
@@ -96,10 +96,10 @@ optional<TransportRouter::RouteInfo> TransportRouter::FindRoute(
   route_info.items.reserve(route->edge_count);
   for (size_t edge_idx = 0; edge_idx < route->edge_count; ++edge_idx) {
     const Graph::EdgeId edge_id = router_->GetRouteEdge(route->id, edge_idx);
-    const auto &edge = graph_.GetEdge(edge_id);
-    const auto &edge_info = edges_info_[edge_id];
+    const auto& edge = graph_.GetEdge(edge_id);
+    const auto& edge_info = edges_info_[edge_id];
     if (holds_alternative<BusEdgeInfo>(edge_info)) {
-      const BusEdgeInfo &bus_edge_info = get<BusEdgeInfo>(edge_info);
+      const BusEdgeInfo& bus_edge_info = get<BusEdgeInfo>(edge_info);
       route_info.items.push_back(RouteInfo::BusItem{
           .bus_name = bus_edge_info.bus_name,
           .time = edge.weight,

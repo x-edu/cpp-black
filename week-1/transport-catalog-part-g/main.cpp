@@ -17,7 +17,7 @@ int main() {
 #endif  // TESTS
 
   const auto input_doc = Json::Load(cin);
-  const auto &input_map = input_doc.GetRoot().AsMap();
+  const auto& input_map = input_doc.GetRoot().AsMap();
 
   const TransportCatalog db(
       Descriptions::ReadDescriptions(input_map.at("base_requests").AsArray()),
