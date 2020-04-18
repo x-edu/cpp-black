@@ -33,4 +33,4 @@ add_executable(
         test_runner.h
         tests.cpp
         tests.h
-)
+        renderer.cpp renderer.h)

@@ -80,15 +80,21 @@ Json::Dict Route::Process(const TransportCatalog& db) const {
   return dict;
 }
 
-variant<Stop, Bus, Route> Read(const Json::Dict& attrs) {
+Request Read(const Json::Dict& attrs) {
   const string& type = attrs.at("type").AsString();
   if (type == "Bus") {
     return Bus{attrs.at("name").AsString()};
-  } else if (type == "Stop") {
+  }
+  if (type == "Stop") {
     return Stop{attrs.at("name").AsString()};
-  } else {
+  }
+  if (type == "Route") {
     return Route{attrs.at("from").AsString(), attrs.at("to").AsString()};
   }
+  if (type == "Map") {
+    return Map{};
+  }
+  throw invalid_argument("unknown request type: " + type);
 }
 
 vector<Json::Node> ProcessAll(const TransportCatalog& db,
@@ -103,6 +109,10 @@ vector<Json::Node> ProcessAll(const TransportCatalog& db,
     responses.push_back(Json::Node(dict));
   }
   return responses;
+}
+
+Json::Dict Map::Process(const TransportCatalog& db) const {
+  return Json::Dict{{"map", db.RenderMap()}};
 }
 
 }  // namespace Requests

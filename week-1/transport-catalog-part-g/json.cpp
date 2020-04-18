@@ -1,5 +1,7 @@
 #include "json.h"
 
+#include "utils.h"
+
 using namespace std;
 
 namespace Json {
@@ -94,7 +96,18 @@ Document Load(istream& input) { return Document{LoadNode(input)}; }
 
 template <>
 void PrintValue<string>(const string& value, ostream& output) {
-  output << '"' << value << '"';
+  output << '"';
+  int start_idx = 0;
+  for (int i = 0; i < value.size(); ++i) {
+    if (value[i] == '"') {
+      output << std::string_view(value.c_str() + start_idx, i - start_idx);
+      output << "\\\"";
+      start_idx = i + 1;
+    }
+  }
+  output << std::string_view(value.c_str() + start_idx,
+                             value.size() - start_idx);
+  output << '"';
 }
 
 template <>

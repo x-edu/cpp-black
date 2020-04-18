@@ -62,6 +62,11 @@ struct Rgb {
   int red, green, blue;
 };
 
+struct Rgba {
+  int red, green, blue;
+  double alpha;
+};
+
 class Color {
  public:
   template <typename TRgb>
@@ -81,10 +86,16 @@ class Color {
       s << "rgb(" << rgb.red << "," << rgb.green << "," << rgb.blue << ")";
       return std::string{s.str()};
     }
+    std::string operator()(const Rgba& rgba) {
+      std::stringstream s{};
+      s << "rgba(" << rgba.red << "," << rgba.green << "," << rgba.blue << ","
+        << rgba.alpha << ")";
+      return std::string{s.str()};
+    }
   };
 
  private:
-  std::variant<std::string, Rgb> color_;
+  std::variant<std::string, Rgb, Rgba> color_;
 };
 
 const Color NoneColor;

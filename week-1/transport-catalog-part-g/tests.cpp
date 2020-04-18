@@ -28,6 +28,34 @@ constexpr std::string_view kPartEFirstRequest = R"(
     "bus_wait_time": 6,
     "bus_velocity": 40
   },
+    "render_settings": {
+        "width": 1200,
+        "height": 1200,
+        "padding": 50,
+        "stop_radius": 5,
+        "line_width": 14,
+        "stop_label_font_size": 20,
+        "stop_label_offset": [
+            7,
+            -3
+        ],
+        "underlayer_color": [
+            255,
+            255,
+            255,
+            0.85
+        ],
+        "underlayer_width": 3,
+        "color_palette": [
+            "green",
+            [
+                255,
+                160,
+                0
+            ],
+            "red"
+        ]
+    },
   "base_requests": [
     {
       "type": "Bus",
@@ -240,7 +268,8 @@ void MakeRequest(std::istream& input, std::ostream& output) {
 
   const TransportCatalog db(
       Descriptions::ReadDescriptions(input_map.at("base_requests").AsArray()),
-      input_map.at("routing_settings").AsMap());
+      input_map.at("routing_settings").AsMap(),
+      input_map.at("render_settings").AsMap());
 
   Json::PrintValue(
       Requests::ProcessAll(db, input_map.at("stat_requests").AsArray()),
@@ -264,6 +293,15 @@ void CourseraPartEFirstCase() {
   ASSERT_EQUAL(output.str(), expected.str());
 }
 
+void TestJsonEscape() {
+  const std::string value = "a\"d";
+  const std::string expected = R"("a\"d")";
+  const Json::Node node{value};
+  std::stringstream output{};
+  Json::PrintNode(node, output);
+  ASSERT_EQUAL(output.str(), expected);
+}
+
 }  // namespace
 
 void RunTests() {
@@ -271,4 +309,5 @@ void RunTests() {
   RUN_TEST(tr, SimpleSvgTest);
   RUN_TEST(tr, CourseraSvgExample);
   RUN_TEST(tr, CourseraPartEFirstCase);
+  RUN_TEST(tr, TestJsonEscape);
 }

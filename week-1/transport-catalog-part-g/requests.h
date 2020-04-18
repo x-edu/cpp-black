@@ -4,9 +4,11 @@
 #include <variant>
 
 #include "json.h"
+#include "renderer.h"
 #include "transport_catalog.h"
 
 namespace Requests {
+
 struct Stop {
   std::string name;
 
@@ -26,7 +28,13 @@ struct Route {
   Json::Dict Process(const TransportCatalog& db) const;
 };
 
-std::variant<Stop, Bus, Route> Read(const Json::Dict& attrs);
+struct Map {
+  Json::Dict Process(const TransportCatalog& db) const;
+};
+
+using Request = std::variant<Stop, Bus, Route, Map>;
+
+Request Read(const Json::Dict& attrs);
 
 std::vector<Json::Node> ProcessAll(const TransportCatalog& db,
                                    const std::vector<Json::Node>& requests);
