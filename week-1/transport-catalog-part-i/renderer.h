@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "descriptions.h"
@@ -36,7 +37,14 @@ class Renderer {
     Svg::Point bus_label_offset;
   };
 
+ private:
   static RenderSettings MakeRenderSettings(const Json::Dict& json);
+
+  void RenderBusLines(
+      const Descriptions::BusesDict& buses_dict,
+      std::map<std::string, Svg::Point>& stop_to_point, Svg::Document& document,
+      const std::vector<std::string>& buses,
+      std::unordered_map<std::string, Svg::Color>& bus_to_color) const;
 
  private:
   RenderSettings render_settings_;

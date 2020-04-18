@@ -94,7 +94,6 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
   }
 
   Svg::Document document{};
-  // Отрисовка автобусных маршрутов
   std::vector<std::string> buses;
   buses.reserve(buses_dict.size());
   for (const auto& [bus, bus_info] : buses_dict) {
@@ -108,17 +107,8 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
         i % render_settings_.color_palette.size());
   }
 
-  for (const auto& bus : buses) {
-    const auto& info = buses_dict.at(bus);
-    Svg::Polyline polyline{};
-    for (const auto& stop : info->stops) {
-      polyline.AddPoint(stop_to_point.at(stop));
-    }
-    document.Add(polyline.SetStrokeColor(bus_to_color.at(bus))
-                     .SetStrokeWidth(render_settings_.line_width)
-                     .SetStrokeLineCap("round")
-                     .SetStrokeLineJoin("round"));
-  }
+  // Отрисовка автобусных маршрутов
+  RenderBusLines(buses_dict, stop_to_point, document, buses, bus_to_color);
   // Отрисовка названий автобусов
   for (const auto& bus : buses) {
     const auto& info = buses_dict.at(bus);
@@ -181,6 +171,24 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
   std::stringstream stream;
   document.Render(stream);
   result_ = stream.str();
+}
+
+void Renderer::RenderBusLines(
+    const Descriptions::BusesDict& buses_dict,
+    std::map<std::string, Svg::Point>& stop_to_point, Svg::Document& document,
+    const std::vector<std::string>& buses,
+    std::unordered_map<std::string, Svg::Color>& bus_to_color) const {
+  for (const auto& bus : buses) {
+    const auto& info = buses_dict.at(bus);
+    Svg::Polyline polyline{};
+    for (const auto& stop : info->stops) {
+      polyline.AddPoint(stop_to_point.at(stop));
+    }
+    document.Add(polyline.SetStrokeColor(bus_to_color.at(bus))
+                     .SetStrokeWidth(render_settings_.line_width)
+                     .SetStrokeLineCap("round")
+                     .SetStrokeLineJoin("round"));
+  }
 }
 
 // static
