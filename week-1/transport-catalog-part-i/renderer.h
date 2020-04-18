@@ -35,6 +35,7 @@ class Renderer {
     std::vector<Svg::Color> color_palette;
     uint32_t bus_label_font_size;
     Svg::Point bus_label_offset;
+    std::vector<std::string> layers;
   };
 
  private:
@@ -42,9 +43,23 @@ class Renderer {
 
   void RenderBusLines(
       const Descriptions::BusesDict& buses_dict,
-      std::map<std::string, Svg::Point>& stop_to_point, Svg::Document& document,
+      const std::map<std::string, Svg::Point>& stop_to_point,
       const std::vector<std::string>& buses,
-      std::unordered_map<std::string, Svg::Color>& bus_to_color) const;
+      const std::unordered_map<std::string, Svg::Color>& bus_to_color,
+      Svg::Document& document) const;
+
+  void RenderBusLabels(
+      const Descriptions::BusesDict& buses_dict,
+      const std::map<std::string, Svg::Point>& stop_to_point,
+      const std::vector<std::string>& buses,
+      const std::unordered_map<std::string, Svg::Color>& bus_to_color,
+      Svg::Document& document) const;
+
+  void RenderStopPoints(const std::map<std::string, Svg::Point>& stop_to_point,
+                        Svg::Document& document) const;
+
+  void RenderStopLabels(const std::map<std::string, Svg::Point>& stop_to_point,
+                        Svg::Document& document) const;
 
  private:
   RenderSettings render_settings_;

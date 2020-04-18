@@ -34,6 +34,7 @@ constexpr std::string_view kPartEFirstRequest = R"(
         "padding": 50,
         "stop_radius": 5,
         "line_width": 14,
+        "layers": ["bus_lines", "stop_points", "stop_labels"],
         "bus_label_font_size": 20,
         "bus_label_offset": [
             7,
@@ -234,6 +235,7 @@ constexpr std::string_view kPartHFirstRequest = R"(
         "padding": 50,
         "stop_radius": 5,
         "line_width": 14,
+        "layers": ["bus_lines", "bus_labels", "stop_points", "stop_labels"],
         "bus_label_font_size": 20,
         "bus_label_offset": [
             7,

@@ -51,6 +51,19 @@ std::vector<Svg::Color> ColorPaletteFromJsonArray(const Json::Array& nodes) {
   return palette;
 }
 
+template <typename T>
+[[maybe_unused]] std::vector<T> TypifyJsonArray(const Json::Array& arr);
+
+template <>
+std::vector<std::string> TypifyJsonArray<std::string>(const Json::Array& arr) {
+  std::vector<std::string> res;
+  res.reserve(arr.size());
+  for (const auto& node : arr) {
+    res.push_back(node.AsString());
+  }
+  return res;
+}
+
 }  // namespace
 
 Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
@@ -93,7 +106,6 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
                         render_settings_.padding};
   }
 
-  Svg::Document document{};
   std::vector<std::string> buses;
   buses.reserve(buses_dict.size());
   for (const auto& [bus, bus_info] : buses_dict) {
@@ -107,14 +119,89 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
         i % render_settings_.color_palette.size());
   }
 
-  // Отрисовка автобусных маршрутов
-  RenderBusLines(buses_dict, stop_to_point, document, buses, bus_to_color);
-  // Отрисовка названий автобусов
+  Svg::Document document{};
+  for (const auto& layer : render_settings_.layers) {
+    if (layer == "bus_lines") {
+      RenderBusLines(buses_dict, stop_to_point, buses, bus_to_color, document);
+    } else if (layer == "bus_labels") {
+      RenderBusLabels(buses_dict, stop_to_point, buses, bus_to_color, document);
+    } else if (layer == "stop_points") {
+      RenderStopPoints(stop_to_point, document);
+    } else if (layer == "stop_labels") {
+      RenderStopLabels(stop_to_point, document);
+    } else {
+      throw std::invalid_argument("invalid layer: " + layer);
+    }
+  }
+
+  std::stringstream stream;
+  document.Render(stream);
+  result_ = stream.str();
+}
+void Renderer::RenderStopLabels(
+    const std::map<std::string, Svg::Point>& stop_to_point,
+    Svg::Document& document) const {
+  for (const auto& [stop, point] : stop_to_point) {
+    const auto& pt = point;
+    const auto& st = stop;
+    const auto makeBaseText = [&] {
+      return Svg::Text{}
+          .SetPoint(pt)
+          .SetOffset(render_settings_.stop_label_offset)
+          .SetFontSize(render_settings_.stop_label_font_size)
+          .SetFontFamily("Verdana")
+          .SetData(st);
+    };
+    document.Add(makeBaseText()
+                     .SetFillColor(render_settings_.underlayer_color)
+                     .SetStrokeColor(render_settings_.underlayer_color)
+                     .SetStrokeWidth(render_settings_.underlayer_width)
+                     .SetStrokeLineCap("round")
+                     .SetStrokeLineJoin("round"));
+    document.Add(makeBaseText().SetFillColor("black"));
+  }
+}
+void Renderer::RenderStopPoints(
+    const std::map<std::string, Svg::Point>& stop_to_point,
+    Svg::Document& document) const {
+  for (const auto& [stop, point] : stop_to_point) {
+    document.Add(Svg::Circle{}
+                     .SetCenter(point)
+                     .SetRadius(render_settings_.stop_radius)
+                     .SetFillColor("white"));
+  }
+}
+
+void Renderer::RenderBusLines(
+    const Descriptions::BusesDict& buses_dict,
+    const std::map<std::string, Svg::Point>& stop_to_point,
+    const std::vector<std::string>& buses,
+    const std::unordered_map<std::string, Svg::Color>& bus_to_color,
+    Svg::Document& document) const {
+  for (const auto& bus : buses) {
+    const auto& info = buses_dict.at(bus);
+    Svg::Polyline polyline{};
+    for (const auto& stop : info->stops) {
+      polyline.AddPoint(stop_to_point.at(stop));
+    }
+    document.Add(polyline.SetStrokeColor(bus_to_color.at(bus))
+                     .SetStrokeWidth(render_settings_.line_width)
+                     .SetStrokeLineCap("round")
+                     .SetStrokeLineJoin("round"));
+  }
+}
+
+void Renderer::RenderBusLabels(
+    const Descriptions::BusesDict& buses_dict,
+    const std::map<std::string, Svg::Point>& stop_to_point,
+    const std::vector<std::string>& buses,
+    const std::unordered_map<std::string, Svg::Color>& bus_to_color,
+    Svg::Document& document) const {
   for (const auto& bus : buses) {
     const auto& info = buses_dict.at(bus);
     const auto makeTextBase = [&](const std::string& stop) {
       return Svg::Text{}
-          .SetPoint(stop_to_point[stop])
+          .SetPoint(stop_to_point.at(stop))
           .SetOffset(render_settings_.bus_label_offset)
           .SetFontSize(render_settings_.bus_label_font_size)
           .SetFontFamily("Verdana")
@@ -140,55 +227,6 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
       document.Add(makeText(mid));
     }
   }
-  // Отрисовка кругов остановок
-  for (const auto& [stop, point] : stop_to_point) {
-    document.Add(Svg::Circle{}
-                     .SetCenter(point)
-                     .SetRadius(render_settings_.stop_radius)
-                     .SetFillColor("white"));
-  }
-  // Отрисовка названий остановок
-  for (const auto& [stop, point] : stop_to_point) {
-    const auto& pt = point;
-    const auto& st = stop;
-    const auto makeBaseText = [&] {
-      return Svg::Text{}
-          .SetPoint(pt)
-          .SetOffset(render_settings_.stop_label_offset)
-          .SetFontSize(render_settings_.stop_label_font_size)
-          .SetFontFamily("Verdana")
-          .SetData(st);
-    };
-    document.Add(makeBaseText()
-                     .SetFillColor(render_settings_.underlayer_color)
-                     .SetStrokeColor(render_settings_.underlayer_color)
-                     .SetStrokeWidth(render_settings_.underlayer_width)
-                     .SetStrokeLineCap("round")
-                     .SetStrokeLineJoin("round"));
-    document.Add(makeBaseText().SetFillColor("black"));
-  }
-
-  std::stringstream stream;
-  document.Render(stream);
-  result_ = stream.str();
-}
-
-void Renderer::RenderBusLines(
-    const Descriptions::BusesDict& buses_dict,
-    std::map<std::string, Svg::Point>& stop_to_point, Svg::Document& document,
-    const std::vector<std::string>& buses,
-    std::unordered_map<std::string, Svg::Color>& bus_to_color) const {
-  for (const auto& bus : buses) {
-    const auto& info = buses_dict.at(bus);
-    Svg::Polyline polyline{};
-    for (const auto& stop : info->stops) {
-      polyline.AddPoint(stop_to_point.at(stop));
-    }
-    document.Add(polyline.SetStrokeColor(bus_to_color.at(bus))
-                     .SetStrokeWidth(render_settings_.line_width)
-                     .SetStrokeLineCap("round")
-                     .SetStrokeLineJoin("round"));
-  }
 }
 
 // static
@@ -211,5 +249,6 @@ Renderer::RenderSettings Renderer::MakeRenderSettings(const Json::Dict& json) {
           static_cast<uint32_t>(json.at("bus_label_font_size").AsInt()),
       .bus_label_offset =
           PointFromJsonArray(json.at("bus_label_offset").AsArray()),
+      .layers = TypifyJsonArray<std::string>(json.at("layers").AsArray()),
   };
 }
