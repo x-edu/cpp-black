@@ -49,6 +49,7 @@ Bus Bus::ParseFrom(const Json::Dict& attrs) {
       .name = attrs.at("name").AsString(),
       .stops = ParseStops(attrs.at("stops").AsArray(),
                           attrs.at("is_roundtrip").AsBool()),
+      .is_roundtrip = attrs.at("is_roundtrip").AsBool(),
   };
 }
 

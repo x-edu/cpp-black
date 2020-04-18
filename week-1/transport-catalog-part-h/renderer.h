@@ -14,6 +14,9 @@ class Renderer {
                     const Json::Dict& json);
 
   [[nodiscard]] const std::string& GetResult() {
+#ifdef TESTS
+    std::clog << result_ << std::endl;
+#endif
     return result_;
   }
 
@@ -29,6 +32,8 @@ class Renderer {
     Svg::Color underlayer_color;
     double underlayer_width;
     std::vector<Svg::Color> color_palette;
+    uint32_t bus_label_font_size;
+    Svg::Point bus_label_offset;
   };
 
   static RenderSettings MakeRenderSettings(const Json::Dict& json);

@@ -304,6 +304,13 @@ class Text : public TagWithContent<std::string>, public BaseProperties<Text> {
     return *this;
   }
 
+  // font-weight
+  // По умолчанию свойство не выводится.
+  Text& SetFontWeight(const std::string& font_weight) {
+    font_weight_ = font_weight;
+    return *this;
+  }
+
   // Задаёт содержимое тега <text> — непосредственно выводимый текст.
   // По умолчанию текст пуст.
   Text& SetData(const std::string& data) {
@@ -319,7 +326,8 @@ class Text : public TagWithContent<std::string>, public BaseProperties<Text> {
         .Add("dx", offset_.x)
         .Add("dy", offset_.y)
         .Add("font-size", font_size_)
-        .AddOptional("font-family", font_family_);
+        .AddOptional("font-family", font_family_)
+        .AddOptional("font-weight", font_weight_);
   }
 
   void AddContent(ContentBuilder<std::string>& builder) const override {
@@ -332,6 +340,7 @@ class Text : public TagWithContent<std::string>, public BaseProperties<Text> {
   uint32_t font_size_ = 1;
   std::optional<std::string> font_family_ = std::nullopt;
   std::string data_ = "";
+  std::optional<std::string> font_weight_ = std::nullopt;
 };
 
 class Document {

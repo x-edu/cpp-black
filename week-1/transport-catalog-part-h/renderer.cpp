@@ -101,19 +101,54 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
     buses.push_back(bus);
   }
   std::sort(buses.begin(), buses.end());
-  size_t color_id = 0;
+  std::unordered_map<std::string, Svg::Color> bus_to_color;
+  bus_to_color.reserve(buses.size());
+  for (int i = 0; i < buses.size(); ++i) {
+    bus_to_color[buses[i]] = render_settings_.color_palette.at(
+        i % render_settings_.color_palette.size());
+  }
+
   for (const auto& bus : buses) {
     const auto& info = buses_dict.at(bus);
     Svg::Polyline polyline{};
     for (const auto& stop : info->stops) {
       polyline.AddPoint(stop_to_point.at(stop));
     }
-    document.Add(
-        polyline.SetStrokeColor(render_settings_.color_palette.at(color_id))
-            .SetStrokeWidth(render_settings_.line_width)
-            .SetStrokeLineCap("round")
-            .SetStrokeLineJoin("round"));
-    color_id = (color_id + 1) % render_settings_.color_palette.size();
+    document.Add(polyline.SetStrokeColor(bus_to_color.at(bus))
+                     .SetStrokeWidth(render_settings_.line_width)
+                     .SetStrokeLineCap("round")
+                     .SetStrokeLineJoin("round"));
+  }
+  // Отрисовка названий автобусов
+  for (const auto& bus : buses) {
+    const auto& info = buses_dict.at(bus);
+    const auto makeTextBase = [&](const std::string& stop) {
+      return Svg::Text{}
+          .SetPoint(stop_to_point[stop])
+          .SetOffset(render_settings_.bus_label_offset)
+          .SetFontSize(render_settings_.bus_label_font_size)
+          .SetFontFamily("Verdana")
+          .SetFontWeight("bold")
+          .SetData(bus);
+    };
+    const auto makeTextUnderlayer = [&](const std::string& stop) {
+      return makeTextBase(stop)
+          .SetFillColor(render_settings_.underlayer_color)
+          .SetStrokeColor(render_settings_.underlayer_color)
+          .SetStrokeWidth(render_settings_.underlayer_width)
+          .SetStrokeLineCap("round")
+          .SetStrokeLineJoin("round");
+    };
+    const auto makeText = [&](const std::string& stop) {
+      return makeTextBase(stop).SetFillColor(bus_to_color.at(bus));
+    };
+    document.Add(makeTextUnderlayer(info->stops.front()));
+    document.Add(makeText(info->stops.front()));
+    const auto& mid = info->stops.at(info->stops.size() / 2);
+    if (!info->is_roundtrip && mid != info->stops.front()) {
+      document.Add(makeTextUnderlayer(mid));
+      document.Add(makeText(mid));
+    }
   }
   // Отрисовка кругов остановок
   for (const auto& [stop, point] : stop_to_point) {
@@ -164,6 +199,9 @@ Renderer::RenderSettings Renderer::MakeRenderSettings(const Json::Dict& json) {
       .underlayer_width = json.at("underlayer_width").AsDouble(),
       .color_palette =
           ColorPaletteFromJsonArray(json.at("color_palette").AsArray()),
-
+      .bus_label_font_size =
+          static_cast<uint32_t>(json.at("bus_label_font_size").AsInt()),
+      .bus_label_offset =
+          PointFromJsonArray(json.at("bus_label_offset").AsArray()),
   };
 }
