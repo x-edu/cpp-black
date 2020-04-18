@@ -1,10 +1,12 @@
 #include "json.h"
 
+#include "utils.h"
+
 using namespace std;
 
 namespace Json {
 
-Node LoadArray(istream &input) {
+Node LoadArray(istream& input) {
   vector<Node> result;
 
   for (char c; input >> c && c != ']';) {
@@ -17,7 +19,7 @@ Node LoadArray(istream &input) {
   return Node(move(result));
 }
 
-Node LoadBool(istream &input) {
+Node LoadBool(istream& input) {
   string s;
   while (isalpha(input.peek())) {
     s.push_back(input.get());
@@ -25,7 +27,7 @@ Node LoadBool(istream &input) {
   return Node(s == "true");
 }
 
-Node LoadNumber(istream &input) {
+Node LoadNumber(istream& input) {
   bool is_negative = false;
   if (input.peek() == '-') {
     is_negative = true;
@@ -49,13 +51,13 @@ Node LoadNumber(istream &input) {
   return Node(result * (is_negative ? -1 : 1));
 }
 
-Node LoadString(istream &input) {
+Node LoadString(istream& input) {
   string line;
   getline(input, line, '"');
   return Node(move(line));
 }
 
-Node LoadDict(istream &input) {
+Node LoadDict(istream& input) {
   Dict result;
 
   for (char c; input >> c && c != '}';) {
@@ -71,7 +73,7 @@ Node LoadDict(istream &input) {
   return Node(move(result));
 }
 
-Node LoadNode(istream &input) {
+Node LoadNode(istream& input) {
   char c;
   input >> c;
 
@@ -90,24 +92,35 @@ Node LoadNode(istream &input) {
   }
 }
 
-Document Load(istream &input) { return Document{LoadNode(input)}; }
+Document Load(istream& input) { return Document{LoadNode(input)}; }
 
 template <>
-void PrintValue<string>(const string &value, ostream &output) {
-  output << '"' << value << '"';
+void PrintValue<string>(const string& value, ostream& output) {
+  output << '"';
+  int start_idx = 0;
+  for (int i = 0; i < value.size(); ++i) {
+    if (value[i] == '"') {
+      output << std::string_view(value.c_str() + start_idx, i - start_idx);
+      output << "\\\"";
+      start_idx = i + 1;
+    }
+  }
+  output << std::string_view(value.c_str() + start_idx,
+                             value.size() - start_idx);
+  output << '"';
 }
 
 template <>
-void PrintValue<bool>(const bool &value, std::ostream &output) {
+void PrintValue<bool>(const bool& value, std::ostream& output) {
   output << std::boolalpha << value;
 }
 
 template <>
-void PrintValue<std::vector<Node>>(const std::vector<Node> &nodes,
-                                   std::ostream &output) {
+void PrintValue<std::vector<Node>>(const std::vector<Node>& nodes,
+                                   std::ostream& output) {
   output << '[';
   bool first = true;
-  for (const Node &node : nodes) {
+  for (const Node& node : nodes) {
     if (!first) {
       output << ", ";
     }
@@ -118,10 +131,10 @@ void PrintValue<std::vector<Node>>(const std::vector<Node> &nodes,
 }
 
 template <>
-void PrintValue<Dict>(const Dict &dict, std::ostream &output) {
+void PrintValue<Dict>(const Dict& dict, std::ostream& output) {
   output << '{';
   bool first = true;
-  for (const auto &[key, node] : dict) {
+  for (const auto& [key, node] : dict) {
     if (!first) {
       output << ", ";
     }
@@ -133,12 +146,12 @@ void PrintValue<Dict>(const Dict &dict, std::ostream &output) {
   output << '}';
 }
 
-void PrintNode(const Json::Node &node, ostream &output) {
-  visit([&output](const auto &value) { PrintValue(value, output); },
+void PrintNode(const Json::Node& node, ostream& output) {
+  visit([&output](const auto& value) { PrintValue(value, output); },
         node.GetBase());
 }
 
-void Print(const Document &document, ostream &output) {
+void Print(const Document& document, ostream& output) {
   PrintNode(document.GetRoot(), output);
 }
 

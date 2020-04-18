@@ -15,9 +15,9 @@ class TransportRouter {
   using Router = Graph::Router<double>;
 
  public:
-  TransportRouter(const Descriptions::StopsDict &stops_dict,
-                  const Descriptions::BusesDict &buses_dict,
-                  const Json::Dict &routing_settings_json);
+  TransportRouter(const Descriptions::StopsDict& stops_dict,
+                  const Descriptions::BusesDict& buses_dict,
+                  const Json::Dict& routing_settings_json);
 
   struct RouteInfo {
     double total_time;
@@ -36,8 +36,8 @@ class TransportRouter {
     std::vector<Item> items;
   };
 
-  std::optional<RouteInfo> FindRoute(const std::string &stop_from,
-                                     const std::string &stop_to) const;
+  std::optional<RouteInfo> FindRoute(const std::string& stop_from,
+                                     const std::string& stop_to) const;
 
  private:
   struct RoutingSettings {
@@ -45,12 +45,12 @@ class TransportRouter {
     double bus_velocity;  // km/h
   };
 
-  static RoutingSettings MakeRoutingSettings(const Json::Dict &json);
+  static RoutingSettings MakeRoutingSettings(const Json::Dict& json);
 
-  void FillGraphWithStops(const Descriptions::StopsDict &stops_dict);
+  void FillGraphWithStops(const Descriptions::StopsDict& stops_dict);
 
-  void FillGraphWithBuses(const Descriptions::StopsDict &stops_dict,
-                          const Descriptions::BusesDict &buses_dict);
+  void FillGraphWithBuses(const Descriptions::StopsDict& stops_dict,
+                          const Descriptions::BusesDict& buses_dict);
 
   struct StopVertexIds {
     Graph::VertexId in;

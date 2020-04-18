@@ -4,14 +4,14 @@ using namespace std;
 
 namespace Descriptions {
 
-Stop Stop::ParseFrom(const Json::Dict &attrs) {
+Stop Stop::ParseFrom(const Json::Dict& attrs) {
   Stop stop = {.name = attrs.at("name").AsString(),
                .position = {
                    .latitude = attrs.at("latitude").AsDouble(),
                    .longitude = attrs.at("longitude").AsDouble(),
                }};
   if (attrs.count("road_distances") > 0) {
-    for (const auto &[neighbour_stop, distance_node] :
+    for (const auto& [neighbour_stop, distance_node] :
          attrs.at("road_distances").AsMap()) {
       stop.distances[neighbour_stop] = distance_node.AsInt();
     }
@@ -19,11 +19,11 @@ Stop Stop::ParseFrom(const Json::Dict &attrs) {
   return stop;
 }
 
-vector<string> ParseStops(const vector<Json::Node> &stop_nodes,
+vector<string> ParseStops(const vector<Json::Node>& stop_nodes,
                           bool is_roundtrip) {
   vector<string> stops;
   stops.reserve(stop_nodes.size());
-  for (const Json::Node &stop_node : stop_nodes) {
+  for (const Json::Node& stop_node : stop_nodes) {
     stops.push_back(stop_node.AsString());
   }
   if (is_roundtrip || stops.size() <= 1) {
@@ -36,7 +36,7 @@ vector<string> ParseStops(const vector<Json::Node> &stop_nodes,
   return stops;
 }
 
-int ComputeStopsDistance(const Stop &lhs, const Stop &rhs) {
+int ComputeStopsDistance(const Stop& lhs, const Stop& rhs) {
   if (auto it = lhs.distances.find(rhs.name); it != lhs.distances.end()) {
     return it->second;
   } else {
@@ -44,7 +44,7 @@ int ComputeStopsDistance(const Stop &lhs, const Stop &rhs) {
   }
 }
 
-Bus Bus::ParseFrom(const Json::Dict &attrs) {
+Bus Bus::ParseFrom(const Json::Dict& attrs) {
   return Bus{
       .name = attrs.at("name").AsString(),
       .stops = ParseStops(attrs.at("stops").AsArray(),
@@ -52,12 +52,12 @@ Bus Bus::ParseFrom(const Json::Dict &attrs) {
   };
 }
 
-vector<InputQuery> ReadDescriptions(const vector<Json::Node> &nodes) {
+vector<InputQuery> ReadDescriptions(const vector<Json::Node>& nodes) {
   vector<InputQuery> result;
   result.reserve(nodes.size());
 
-  for (const Json::Node &node : nodes) {
-    const auto &node_dict = node.AsMap();
+  for (const Json::Node& node : nodes) {
+    const auto& node_dict = node.AsMap();
     if (node_dict.at("type").AsString() == "Bus") {
       result.push_back(Bus::ParseFrom(node_dict));
     } else {
