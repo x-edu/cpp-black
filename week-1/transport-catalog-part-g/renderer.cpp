@@ -108,11 +108,6 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
     for (const auto& stop : info->stops) {
       polyline.AddPoint(stop_to_point.at(stop));
     }
-    if (info->stops.front() != info->stops.back()) {
-      for (int i = static_cast<int>(info->stops.size()) - 1; i > 0; --i) {
-        polyline.AddPoint(stop_to_point.at(info->stops.at(i)));
-      }
-    }
     document.Add(
         polyline.SetStrokeColor(render_settings_.color_palette.at(color_id))
             .SetStrokeWidth(render_settings_.line_width)
@@ -120,7 +115,6 @@ Renderer::Renderer(const Descriptions::StopsDict& stops_dict,
             .SetStrokeLineJoin("round"));
     color_id = (color_id + 1) % render_settings_.color_palette.size();
   }
-
   // Отрисовка кругов остановок
   for (const auto& [stop, point] : stop_to_point) {
     document.Add(Svg::Circle{}
