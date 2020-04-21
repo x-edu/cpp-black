@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
+#include <list>
 
 #include "test_runner.h"
 
@@ -15,16 +16,16 @@ namespace Json {
 
 class Node {
  public:
-  using JsonArray = std::vector<Node>;
-  using JsonObject = std::unordered_map<std::string, Node>;
+  using JsonArray = std::list<Node>;
+  using JsonObject = std::list<std::pair<std::string, Node>>;
   using JsonNumber = int64_t;
 
   Node& SetString(const std::string_view value) {
     AsString() = value;
     return *this;
   }
-  Node& Set(const std::string& key, Node node) {
-    AsObject()[key] = std::move(node);
+  Node& Set(std::string key, Node node) {
+    AsObject().emplace_back(std::move(key), std::move(node));
     return *this;
   }
   Node& Add(Node node) {
@@ -123,11 +124,12 @@ void PrintJsonObject(std::ostream& out, Json::Object& object) {
 
 void PrintJsonArray(std::ostream& out, Json::Array& array) {
   out << '[';
-  for (int i = 0; i < array.size(); ++i) {
-    if (i > 0) {
+  int id = 0;
+  for (auto& item : array) {
+    if (id++ > 0) {
       out << ',';
     }
-    PrintNode(out, array[i]);
+    PrintNode(out, item);
   }
   out << ']';
 }
@@ -176,7 +178,6 @@ class ArrayContext : public EmptyContext {
       PrintJsonArray(ostream_.value(), array_);
     }
   }
-
   virtual ArrayContext& Number(int64_t number) {
     array_.push_back(Json::Node{}.SetNumber(number));
     return *this;
@@ -289,7 +290,8 @@ class ValueContext {
 };
 
 ValueContext ObjectContext::Key(std::string_view key) {
-  return ValueContext(*this, object_[std::string{key}]);
+  object_.emplace_back(std::string{key}, Json::Node{});
+  return ValueContext(*this, object_.back().second);
 }
 
 template <typename T>
@@ -301,7 +303,7 @@ class InnerObjectContext final : public ObjectContext {
   T& EndObject() override { return ret_; }
 
  private:
-  Json::Object object_;
+  Json::Object& object_;
   T& ret_;
 };
 
@@ -323,7 +325,8 @@ InnerObjectContext<ArrayContext> ArrayContext::BeginObject() {
 
 template <typename T>
 ValueContext InnerObjectContext<T>::Key(std::string_view key) {
-  return ValueContext(*this, object_[std::string{key}]);
+  object_.emplace_back(std::string{key}, Json::Node{});
+  return ValueContext(*this, object_.back().second);
 }
 
 InnerObjectContext<ObjectContext> ValueContext::BeginObject() {
@@ -375,11 +378,109 @@ void TestAutoClose() {
   ASSERT_EQUAL(output.str(), R"([[{}]])");
 }
 
+void TestPrintJsonString() {
+  std::ostringstream output;
+
+  {
+    PrintJsonString(output, "Hello, \"world\"");
+  }
+
+  ASSERT_EQUAL(output.str(), R"("Hello, \"world\"")");
+}
+
+void TestExplicitClose() {
+  std::ostringstream output;
+
+  {
+    PrintJsonArray(output)
+        .Null()
+        .String("Hello")
+        .Number(123)
+        .Boolean(false)
+        .EndArray();
+  }
+
+  ASSERT_EQUAL(output.str(), R"([null,"Hello",123,false])");
+}
+
+void TestImplicitClose() {
+  std::ostringstream output;
+
+  {
+    PrintJsonArray(output)
+        .Null()
+        .String("Hello")
+        .Number(123)
+        .Boolean(false);
+  }
+
+  ASSERT_EQUAL(output.str(), R"([null,"Hello",123,false])");
+}
+
+void TestInnerArray() {
+  std::ostringstream output;
+
+  {
+    PrintJsonArray(output)
+        .String("Hello")
+        .BeginArray()
+        .String("World");
+  }
+
+  ASSERT_EQUAL(output.str(), R"(["Hello",["World"]])");
+}
+
+void TestComplexObject() {
+  std::ostringstream output;
+
+  {
+    PrintJsonObject(output)
+        .Key("foo")
+        .BeginArray()
+        .String("Hello")
+        .EndArray()
+        .Key("foo")  // повторяющиеся ключи допускаются
+        .BeginObject()
+        .Key("foo");  // закрытие объекта в таком состоянии допишет null в качестве значения
+  }
+
+  ASSERT_EQUAL(output.str(), R"({"foo":["Hello"],"foo":{"foo":null}})");
+}
+
 int main() {
   TestRunner tr;
   RUN_TEST(tr, TestArray);
   RUN_TEST(tr, TestObject);
   RUN_TEST(tr, TestAutoClose);
+  RUN_TEST(tr, TestExplicitClose);
+  RUN_TEST(tr, TestPrintJsonString);
+  RUN_TEST(tr, TestImplicitClose);
+  RUN_TEST(tr, TestInnerArray);
+  RUN_TEST(tr, TestComplexObject);
+
+
+
+//  PrintJsonObject(std::cout).String("foo");  // ошибка компиляции
+//
+//  PrintJsonObject(std::cout).Key("foo").Key("bar");  // ошибка компиляции
+//
+//  PrintJsonObject(std::cout).EndArray();  // ошибка компиляции
+//
+//  PrintJsonArray(std::cout)
+//      .Key("foo")
+//      .BeginArray()
+//      .EndArray()
+//      .EndArray();  // ошибка компиляции
+//
+//  PrintJsonArray(std::cout)
+//      .EndArray()
+//      .BeginArray();  // ошибка компиляции  (JSON допускает только одно
+//                      // верхнеуровневое значение)
+//
+//  PrintJsonObject(std::cout)
+//      .EndObject()
+//      .BeginObject();  // ошибка компиляции  (JSON допускает только одно
+//                       // верхнеуровневое значение)
 
   return 0;
 }
