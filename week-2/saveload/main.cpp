@@ -75,11 +75,27 @@ void TestSaveLoad() {
   map<uint32_t, string> m2;
   Deserialize(ss, m2);
 
-  ASSERT_EQUAL(m, m2);
+  ASSERT(m == m2);
 }
+
+void TestSaveLoad2() {
+  std::vector<std::map<std::string, std::string>> m = {{{"one", "two"}}};
+  stringstream ss;
+  Serialize(m, ss);
+  auto s = ss.str();
+
+  std::vector<std::map<std::string, std::string>> m2;
+  Deserialize(ss, m2);
+
+  ASSERT(m == m2);
+}
+
+
 
 int main() {
   TestRunner tr;
   RUN_TEST(tr, TestSaveLoad);
+  RUN_TEST(tr, TestSaveLoad2);
+
   return 0;
 }
