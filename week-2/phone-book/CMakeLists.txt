@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(
         Protobuf REQUIRED
 )
-message(${Protobuf_PROTOC_EXECUTABLE})
+
 include_directories(${Protobuf_INCLUDE_DIRS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
