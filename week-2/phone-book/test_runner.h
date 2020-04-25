@@ -124,7 +124,7 @@ class TestRunner {
     std::ostringstream __assert_private_os;                        \
     __assert_private_os << #x << " is false, " << FILE_NAME << ":" \
                         << __LINE__;                               \
-    Assert(x, __assert_private_os.str());                          \
+    Assert(!!(x), __assert_private_os.str());                        \
   }
 
 #define RUN_TEST(tr, func) tr.RunTest(func, #func)
