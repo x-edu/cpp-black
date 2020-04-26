@@ -2,6 +2,7 @@
 
 #include <iosfwd>
 #include <optional>
+#include <queue>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -97,24 +98,47 @@ class LexerError : public std::runtime_error {
 
 class Lexer {
  public:
-  explicit Lexer(std::istream& input) {}
+  explicit Lexer(std::istream& input) : input_(input) {
+    NextToken();
+  }
 
-  const Token& CurrentToken() const {}
-  Token NextToken() {}
-
-  template <typename T>
-  const T& Expect() const {}
-
-  template <typename T, typename U>
-  void Expect(const U& value) const {}
+  const Token& CurrentToken() const { return current_token_; }
+  Token NextToken();
 
   template <typename T>
-  const T& ExpectNext() {}
+  const T& Expect() const {
+    if (current_token_.Is<T>()) {
+      return current_token_.As<T>();
+    }
+    throw LexerError{"expectation failure"};
+  }
 
   template <typename T, typename U>
-  void ExpectNext(const U& value) {}
+  void Expect(const U& value) const {
+    if (current_token_.Is<T>() && current_token_.As<T>().value == value) {
+      return;
+    }
+    throw LexerError{"expectation failure"};
+  }
+
+  template <typename T>
+  const T& ExpectNext() {
+    NextToken();
+    return Expect<T>();
+  }
+
+  template <typename T, typename U>
+  void ExpectNext(const U& value) {
+    NextToken();
+    return Expect<T>(value);
+  }
 
  private:
+  std::istream& input_;
+  int indent_ = 0;
+  std::queue<Token> queue_;
+  bool added_new_line_at_the_end_ = false;
+  Token current_token_ = TokenType::Newline{};
 };
 
 void RunLexerTests(TestRunner& test_runner);
